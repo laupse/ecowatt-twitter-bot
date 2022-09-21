@@ -69,6 +69,6 @@ fn main() {
             }
         };
 
-        thread::sleep(time::Duration::from_secs(1 * 60))
+        thread::sleep(time::Duration::from_secs(15 * 60))
     }
 }
