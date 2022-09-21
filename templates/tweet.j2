@@ -1,0 +1,12 @@
+Signaux ecowatt du {{ date }} 👇
+
+{% for signal in signals -%}
+  {%- if signal.dvalue == 1 -%}
+    🟢
+  {%- elif signal.dvalue == 2 -%}
+    🟠 
+  {%- else -%}
+    🔴
+  {%- endif %} J+{{ signal.relative }} {{ signal.message }} 
+{% endfor %}
+Retrouvez les eco-gestes ici 👇 https://www.monecowatt.fr/ecogestes
