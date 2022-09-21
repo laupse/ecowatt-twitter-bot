@@ -71,8 +71,7 @@ impl TweetClient {
             "date",
             &result
                 .latest_generation_fichier
-                .date_naive()
-                .format("%d/%m/%Y")
+                .format("%d/%m/%Y %H:%M")
                 .to_string(),
         );
         let tweet = &self

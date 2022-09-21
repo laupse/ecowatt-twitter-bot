@@ -30,7 +30,7 @@ struct Signal {
     generation_fichier: DateTime<Local>,
     jour: DateTime<Local>,
     #[serde(skip_deserializing)]
-    relative: i64,
+    formatted_jour: String,
     dvalue: u8,
     message: String,
     values: Vec<Value>,
@@ -93,13 +93,10 @@ impl RteClient {
             .map_err(|err| SignalsRetrievalError::NoneHttpError(err.to_string()))?;
 
         //Compute the relative number of day with today
-        result.signals.iter_mut().for_each(|f| {
-            f.relative = f
-                .jour
-                .date_naive()
-                .signed_duration_since(Local::now().date_naive())
-                .num_days()
-        });
+        result
+            .signals
+            .iter_mut()
+            .for_each(|f| f.formatted_jour = f.jour.date_naive().format("%d/%m/%Y").to_string());
 
         // find the date from the latest change
         if let Some(signal) = result.signals.iter().max_by_key(|f| f.generation_fichier) {
@@ -107,7 +104,7 @@ impl RteClient {
         }
 
         //And then sort it by this relative number
-        result.signals.sort_by_key(|k| k.relative);
+        result.signals.sort_by_key(|k| k.jour);
         Ok(result)
     }
 }
