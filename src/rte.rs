@@ -63,7 +63,7 @@ impl RteClient {
         RteClient {
             oauth2,
             client,
-            url: base_url + "/open_api/ecowatt/v4/sandbox/signals",
+            url: base_url + "/open_api/ecowatt/v4/signals",
         }
     }
 
