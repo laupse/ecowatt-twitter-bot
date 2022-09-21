@@ -63,7 +63,7 @@ impl TweetClient {
         // Create the `Authorization` header.
         oauth::post(&self.url, &{}, &token, oauth::HMAC_SHA1)
     }
-    pub fn send_tweet(&self, result: ApiResponse) -> Result<(), PostTweetError> {
+    pub fn send_tweet(&self, result: &ApiResponse) -> Result<(), PostTweetError> {
         let mut context = Context::from_serialize(&result)
             .map_err(|err| PostTweetError::NoneHttpError(err.to_string()))?;
 
@@ -71,7 +71,7 @@ impl TweetClient {
             "date",
             &result
                 .latest_generation_fichier
-                .format("%d/%m/%Y %H:%M")
+                .format("%d/%m/%y %H:%M")
                 .to_string(),
         );
         let tweet = &self

@@ -54,9 +54,11 @@ fn main() {
                         "new version from {}, tweet will be sent",
                         response.latest_generation_fichier
                     );
-                    generation_fichier = response.latest_generation_fichier;
-                    match twitter_client.send_tweet(response) {
-                        Ok(_) => info!("tweet sucessfully sent"),
+                    match twitter_client.send_tweet(&response) {
+                        Ok(_) => {
+                            generation_fichier = response.latest_generation_fichier.clone();
+                            info!("tweet sucessfully sent");
+                        }
                         Err(e) => error!("failed to post tweet :{:?}", e),
                     }
                 } else {
