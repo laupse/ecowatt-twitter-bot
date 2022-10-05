@@ -18,24 +18,22 @@ fn main() {
         env::var("RTE_CLIENT_ID").expect("env variable `RTE_CLIENT_ID` should be set");
     let rte_client_secret =
         env::var("RTE_CLIENT_SECRET").expect("env variable `RTE_CLIENT_SECRET` should be set");
+    let rte_base_url = env::var("RTE_BASE_URL").expect("env variable `RTE_BASE_URL` should be set");
+
     let twitter_client_id =
         env::var("TWITTER_CLIENT_ID").expect("env variable `TWITTER_CLIENT_ID` should be set");
     let twitter_client_secret = env::var("TWITTER_CLIENT_SECRET")
         .expect("env variable `TWITTER_CLIENT_SECRET` should be set");
-
     let twitter_token =
         env::var("TWITTER_TOKEN").expect("env variable `TWITTER_TOKEN_ACCESS` should be set");
     let twitter_token_secret = env::var("TWITTER_TOKEN_SECRET")
         .expect("env variable `TWITTER_TOKEN_SECRET` should be set");
+    let twitter_url = env::var("TWITTER_URL").expect("env variable `TWITTER_URL` should be set");
 
-    let rte_client = rte::RteClient::new(
-        String::from("https://digital.iservices.rte-france.com"),
-        rte_client_id,
-        rte_client_secret,
-    );
+    let rte_client = rte::RteClient::new(rte_base_url, rte_client_id, rte_client_secret);
 
     let twitter_client = twitter::TweetClient::new(
-        String::from("https://api.twitter.com/2/tweets"),
+        twitter_url,
         twitter_client_id,
         twitter_client_secret,
         twitter_token,

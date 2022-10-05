@@ -93,10 +93,10 @@ impl RteClient {
             .map_err(|err| SignalsRetrievalError::NoneHttpError(err.to_string()))?;
 
         //Compute the relative number of day with today
-        result
-            .signals
-            .iter_mut()
-            .for_each(|f| f.formatted_jour = f.jour.date_naive().format("%d/%m/%Y").to_string());
+        result.signals.iter_mut().for_each(|f| {
+            f.formatted_jour = f.jour.date_naive().format("%d/%m/%Y").to_string();
+            f.message = f.message.trim_end().trim_end_matches(".").to_string();
+        });
 
         // find the date from the latest change
         if let Some(signal) = result.signals.iter().max_by_key(|f| f.generation_fichier) {
