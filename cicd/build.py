@@ -55,7 +55,8 @@ def build(client: dagger.Client):
              .exec(["apt-get", "install", "-y", "dialog", "apt-utils", "tzdata"])
              .exec(["rm", "/etc/localtime"])
              .exec(["ln", "-s", "/usr/share/zoneinfo/Europe/Paris /etc/localtime"])
-             .with_file(".", executable))
+             .with_file(".", executable)
+             .with_entrypoint("/ecowatt-twitter-bot"))
 
     final.stdout()
     return final
