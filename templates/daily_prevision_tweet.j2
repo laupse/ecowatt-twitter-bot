@@ -1,0 +1,14 @@
+{%- if dvalue == 2 -%}
+    🟠 
+{%- else -%}
+    🔴
+{%- endif %} Prévision par heure pour {{ date }}
+
+{% for i in [0,1,2,3] %}
+  {%- set start = 6 * i -%}
+  {%- set end = 6 * (i + 1) -%}
+  {% for hvalue in hvalues | slice(start=start, end=end) -%}
+    {%- if hvalue == 0 -%}⬜️{%- elif hvalue == 1 -%}🟩{%- elif hvalue == 2 -%}🟧{%- else -%}🟥{%- endif -%}
+  {% endfor %}{{- end }}h
+{% endfor %}
+Les eco-gestes ici 👇 https://www.monecowatt.fr/ecogestes

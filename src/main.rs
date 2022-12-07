@@ -1,9 +1,7 @@
 use chrono::{DateTime, Local};
 use log::{error, info};
 use std::env;
-
 use std::{thread, time};
-
 pub mod rte;
 pub mod twitter;
 
@@ -38,7 +36,8 @@ fn main() {
         twitter_client_secret,
         twitter_token,
         twitter_token_secret,
-        String::from("templates/tweet.j2"),
+        String::from("templates/prevision_tweet.j2"),
+        String::from("templates/daily_prevision_tweet.j2"),
     );
 
     let mut generation_fichier: DateTime<Local> = Local::now();
@@ -52,10 +51,21 @@ fn main() {
                         "new version from {}, tweet will be sent",
                         response.latest_generation_fichier
                     );
-                    match twitter_client.send_tweet(&response) {
+                    match twitter_client.send_tweets(&response) {
                         Ok(_) => {
                             generation_fichier = response.latest_generation_fichier.clone();
                             info!("tweet sucessfully sent");
+
+                            // TODO : Make the retweet in the morning
+                            // tokio::spawn(async move {
+                            //     let duration = Duration::from_millis(100);
+                            //     tokio::time::sleep(duration).await;
+                            //     let twitter_retweet_client = twitter_client.clone();
+                            //     match twitter_retweet_client.clone().retweet_last() {
+                            //         Ok(_) => info!("last tweet successfully retweeted"),
+                            //         Err(e) => error!("failed to retweet last tweet :{:?}", e),
+                            //     }
+                            // });
                         }
                         Err(e) => error!("failed to post tweet :{:?}", e),
                     }

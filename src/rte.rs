@@ -19,27 +19,27 @@ pub enum SignalsRetrievalError {
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiResponse {
-    signals: Vec<Signal>,
+    pub signals: Vec<Signal>,
     #[serde(skip_deserializing)]
     pub latest_generation_fichier: DateTime<Local>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Signal {
+pub struct Signal {
     #[serde(rename(deserialize = "GenerationFichier"))]
     generation_fichier: DateTime<Local>,
     jour: DateTime<Local>,
     #[serde(skip_deserializing)]
-    formatted_jour: String,
-    dvalue: u8,
+    pub formatted_jour: String,
+    pub dvalue: u8,
     message: String,
-    values: Vec<Value>,
+    pub values: Vec<Value>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Value {
-    pas: u8,
-    hvalue: u8,
+pub struct Value {
+    pub pas: u8,
+    pub hvalue: u8,
 }
 
 pub struct RteClient {

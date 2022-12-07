@@ -13,7 +13,7 @@ RUN rm ./target/release/deps/ecowatt_twitter_bot* && cargo build --release
 
 FROM rust:1.63.0-slim
 
-RUN apt-get update && apt-get install -y tzdata && \
+RUN apt-get update && apt-get install -y dialog apt-utils tzdata && \
     rm /etc/localtime && \
     ln -s /usr/share/zoneinfo/Europe/Paris /etc/localtime
 

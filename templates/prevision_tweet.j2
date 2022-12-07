@@ -1,4 +1,4 @@
-💡 Prévisions du {{ latest_generation_fichier | date(format="%d/%m", timezone="Europe/Paris") }}
+💡 Prévisions du {{ latest_generation_fichier | date(format="%d/%m %H:%M", timezone="Europe/Paris") }}
 
 {% for signal in signals -%}
   {%- if signal.dvalue == 1 -%}
@@ -9,4 +9,4 @@
     🔴
   {%- endif %} {{ signal.formatted_jour }} {{ signal.message }} 
 {% endfor %}
-Les eco-gestes ici 👉 https://www.monecowatt.fr/ecogestes
+Les eco-gestes ici 👇 https://www.monecowatt.fr/ecogestes

@@ -1,12 +1,18 @@
-use log::debug;
-use serde::Serialize;
+use log::{debug, error};
+use oauth::Request;
+use serde::{Deserialize, Serialize};
+
 use tera::{Context, Tera};
 
 use crate::rte::ApiResponse;
-use reqwest::{blocking::Client, header::AUTHORIZATION, StatusCode};
+use reqwest::{
+    blocking::{Client, Response},
+    header::AUTHORIZATION,
+    Method, StatusCode,
+};
 
 #[derive(Debug, Clone)]
-pub enum PostTweetError {
+pub enum TwitterClientError {
     RenderTweetError(String),
     HttpError(Option<StatusCode>),
     NoneHttpError(String),
@@ -17,10 +23,38 @@ struct Tweet {
     text: String,
 }
 
+#[derive(oauth::Request, Serialize)]
+struct Retweet {
+    tweet_id: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TwitterResponse<D> {
+    pub data: D,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PostTweetResponse {
+    pub id: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UserResponse {
+    pub id: String,
+    pub name: String,
+    pub username: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UserTweetsResponse {
+    pub id: String,
+}
+
+#[derive(Clone)]
 pub struct TweetClient {
     client: reqwest::blocking::Client,
     tera: tera::Tera,
-    url: String,
+    base_url: String,
     client_id: String,
     client_secret: String,
     token: String,
@@ -29,22 +63,29 @@ pub struct TweetClient {
 
 impl TweetClient {
     pub fn new(
-        url: String,
+        base_url: String,
         client_id: String,
         client_secret: String,
         token: String,
         token_secret: String,
-        tweet_template: String,
+        prevision_tweet_template: String,
+        daily_prevision_tweet_template: String,
     ) -> TweetClient {
         let client = Client::new();
         let mut tera = Tera::default();
-        tera.add_template_file(tweet_template, Some("tweet"))
+        tera.add_template_file(prevision_tweet_template, Some("prevision_tweet"))
             .expect("template should be parsable");
+
+        tera.add_template_file(
+            daily_prevision_tweet_template,
+            Some("daily_prevision_tweet"),
+        )
+        .expect("template should be parsable");
 
         TweetClient {
             client,
             tera,
-            url,
+            base_url,
             client_id,
             client_secret,
             token,
@@ -52,7 +93,10 @@ impl TweetClient {
         }
     }
 
-    fn generate_authorization_header(&self) -> String {
+    fn generate_authorization_header<R>(&self, url: &String, request: R) -> String
+    where
+        R: Request,
+    {
         let token = oauth::Token::from_parts(
             &self.client_id,
             &self.client_secret,
@@ -61,38 +105,119 @@ impl TweetClient {
         );
 
         // Create the `Authorization` header.
-        oauth::post(&self.url, &{}, &token, oauth::HMAC_SHA1)
+        oauth::post(url, &request, &token, oauth::HMAC_SHA1)
     }
-    pub fn send_tweet(&self, result: &ApiResponse) -> Result<(), PostTweetError> {
-        let mut context = Context::from_serialize(&result)
-            .map_err(|err| PostTweetError::NoneHttpError(err.to_string()))?;
 
-        context.insert(
-            "date",
-            &result
-                .latest_generation_fichier
-                .format("%d/%m/%y %H:%M")
-                .to_string(),
-        );
-        let tweet = &self
-            .tera
-            .render("tweet", &context)
-            .map_err(|err| PostTweetError::NoneHttpError(err.to_string()))?;
-
-        let authorization_header = &self.generate_authorization_header();
-        let request = Tweet {
-            text: tweet.to_string(),
-        };
-        debug!("{}", request.text);
-        let _ = &self
+    fn do_request<R: Request, T: Serialize + ?Sized>(
+        &self,
+        method: Method,
+        url: &String,
+        query: &T,
+        json: &R,
+    ) -> Result<Response, TwitterClientError> {
+        let authorization_header = self.generate_authorization_header(&url, json);
+        let response = self
             .client
-            .post(&self.url)
-            .json(&request)
+            .request(method, url)
+            .query(query)
             .header(AUTHORIZATION, authorization_header)
             .send()
-            .map_err(|err| PostTweetError::NoneHttpError(err.to_string()))?
-            .error_for_status()
-            .map_err(|err| PostTweetError::HttpError(err.status()))?;
+            .map_err(|err| TwitterClientError::NoneHttpError(err.to_string()))?;
+
+        let status = response.status();
+        if status != 200 {
+            error!("Request failed with {:?}", status);
+            match response.text() {
+                Ok(text) => debug!("{}", text),
+                Err(err) => debug!("Could not read response {:?}", err),
+            };
+            return Err(TwitterClientError::HttpError(Some(status)));
+        }
+
+        Ok(response)
+    }
+
+    fn send_tweet(
+        &self,
+        content: String,
+    ) -> Result<TwitterResponse<PostTweetResponse>, TwitterClientError> {
+        debug!("{}", content);
+        let request = Tweet {
+            text: content.to_string(),
+        };
+
+        let full_url = String::from(&self.base_url) + "/tweets";
+
+        let result = self.do_request(Method::POST, &full_url, &{}, &request)?;
+
+        match result.json::<TwitterResponse<PostTweetResponse>>() {
+            Ok(resp) => Ok(resp),
+            Err(err) => Err(TwitterClientError::NoneHttpError(err.to_string())),
+        }
+    }
+
+    pub fn render_then_send_tweet(
+        &self,
+        context: Context,
+        template: &str,
+    ) -> Result<(), TwitterClientError> {
+        let tweet = self
+            .tera
+            .render(template, &context)
+            .map_err(|err| TwitterClientError::RenderTweetError(err.to_string()))?;
+
+        let _ = &self.send_tweet(tweet)?;
+
+        Ok(())
+    }
+
+    pub fn send_tweets(&self, result: &ApiResponse) -> Result<(), TwitterClientError> {
+        let context = Context::from_serialize(result)
+            .map_err(|err| TwitterClientError::RenderTweetError(err.to_string()))?;
+
+        self.render_then_send_tweet(context, "prevision_tweet")?;
+
+        for signal in result.signals.iter() {
+            if signal.dvalue > 1 {
+                let mut hvalues = vec![0; 24];
+                for hvalue in signal.values.iter() {
+                    hvalues[hvalue.pas as usize] = hvalue.hvalue
+                }
+                let mut context = Context::new();
+                context.insert("date", &signal.formatted_jour);
+                context.insert("dvalue", &signal.dvalue);
+                context.insert("hvalues", &hvalues);
+
+                self.render_then_send_tweet(context, "daily_prevision_tweet")?;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn retweet_last(&self) -> Result<(), TwitterClientError> {
+        let me_url = String::from(&self.base_url) + "/users/me";
+        let me = self
+            .do_request(Method::GET, &me_url, &{}, &{})?
+            .json::<TwitterResponse<UserResponse>>()
+            .map_err(|err| TwitterClientError::NoneHttpError(err.to_string()))?;
+
+        let tweets_url =
+            String::from(&self.base_url) + format!("/users/{}/tweets", me.data.id).as_str();
+        let last_tweet = self
+            .do_request(Method::GET, &tweets_url, &[("max_results", 1)], &{})?
+            .json::<TwitterResponse<Vec<UserTweetsResponse>>>()
+            .map_err(|err| TwitterClientError::NoneHttpError(err.to_string()))?
+            .data
+            .pop();
+
+        if let Some(tweet) = last_tweet {
+            let retweets_url =
+                String::from(&self.base_url) + format!("/users/{}/retweets", me.data.id).as_str();
+            let request_retweet = Retweet { tweet_id: tweet.id };
+            let _ = self.do_request(Method::POST, &retweets_url, &{}, &request_retweet)?;
+        }
+
         Ok(())
     }
 }
