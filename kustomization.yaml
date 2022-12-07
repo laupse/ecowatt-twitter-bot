@@ -1,0 +1,7 @@
+resources:
+  - deployment.yaml
+configMapGenerator:
+  - name: ecowatt-twitter-bot-template
+    files:
+      - ./templates/daily_prevision_tweet.j2
+      - ./templates/prevision_tweet.j2

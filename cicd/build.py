@@ -25,24 +25,17 @@ def main():
 
 
 def build(client: dagger.Client):
-    cargo = (client
-             .host()
-             .directory(".", include=["Cargo*"]))
+    src = (client
+           .host()
+           .directory(".", include=["Cargo*", "./src"]))
 
     build = (client
              .container()
              .from_("rust:1.63.0")
              .with_env_variable("USER", "root")
-             .exec(["cargo", "new", "--bin", "ecowatt-twitter-bot"]))
-
-    build = (build
              .with_workdir("/ecowatt-twitter-bot")
-             .with_directory(".", cargo)
+             .with_directory(".", src)
              .exec(["cargo", "build", "--release"]))
-
-    src = (client
-           .host()
-           .directory(".", include=["src"]))
 
     executable = (build
                   .with_directory(".", src)
@@ -58,7 +51,7 @@ def build(client: dagger.Client):
              .with_file(".", executable)
              .with_entrypoint("/ecowatt-twitter-bot"))
 
-    final.stdout()
+    final.export("ecowatt-twitter-bot.tar")
     return final
 
 

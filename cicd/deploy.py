@@ -10,35 +10,28 @@ def deploy():
             print("IMAGE_REF env is required")
             return 1
 
+        kustomize_file = os.getenv("KUSTOMIZE_FILE_PATH")
+        if kustomize_file is None:
+            kustomize_file = "./kustomize/local.yaml"
+
+        needed_files = ["kustomization.yaml", "deployment.yaml",
+                        "./templates", "kubeconfig.yaml"] + [kustomize_file]
+
         dir = client.host().directory(
-            ".", include=["*.yml", "*.yaml", "./templates"])
+            ".", include=needed_files)
 
         kubectl = (client
                    .container()
                    .from_("alpine/k8s:1.23.13")
-                   .with_file("/root/.kube/config", dir.file("kubeconfig.yaml")))
+                   .with_file("/root/.kube/config", dir.file("kubeconfig.yaml"))
+                   .with_mounted_directory("/src", dir)
+                   .with_workdir("/src")
+                   .exec(["kustomize", "edit", "set", "image", "ecowatt-twitter-bot="+image_ref])
+                   .exec(["kustomize", "edit", "add", "patch", "--path", kustomize_file])
+                   .exec(["kubectl", "kustomize"])
+                   .exec(["kubectl", "apply", "-k", "."]).exit_code())
 
-        daily_template = dir.file("/templates/daily_prevision_tweet.j2")
-        template = dir.file("/templates/prevision_tweet.j2")
-        deploy_template = dir.file("deploy.template.yml")
-
-        _ = (kubectl
-             .exec(["kubectl", "delete", "configmap", "ecowatt-twitter-bot-template", "--ignore-not-found=true"])
-             .exit_code())
-
-        _ = (kubectl
-             .with_file("daily_prevision_tweet.j2", daily_template)
-             .with_file("prevision_tweet.j2", template)
-             .exec(["kubectl", "create", "configmap", "ecowatt-twitter-bot-template", "--from-file=daily_prevision_tweet.j2", "--from-file=prevision_tweet.j2"])
-             .exit_code())
-
-        deployment = (client.container().from_("alpine:3.15")
-                      .with_file(".", deploy_template)
-                      .exec(["sed", f"s/IMAGE_REF/{image_ref}/g", "deploy.template.yml"]).stdout())
-        _ = (kubectl
-             .with_file("deploy.template.yml", deployment)
-             .exec(["kubectl", "apply", "-f", "deploy.template.yml"])
-             .exit_code())
+        return 0
 
 
 if __name__ == "__main__":

@@ -7,14 +7,9 @@ spec:
     matchLabels:
       app: ecowatt-twitter-bot
   template:
-    metadata:
-      labels:
-        app: ecowatt-twitter-bot
     spec:
       containers:
         - name: ecowatt-twitter-bot
-          image: IMAGE_REF
-          imagePullPolicy: Always
           env:
             - name: RTE_CLIENT_ID
               valueFrom:
@@ -50,10 +45,3 @@ spec:
                   name: ecowatt-twitter-bot
             - name: TWITTER_URL
               value: https://api.twitter.com/2/tweets
-          volumeMounts:
-            - name: tweet-template
-              mountPath: /templates
-      volumes:
-        - name: tweet-template
-          configMap:
-            name: ecowatt-twitter-bot-template

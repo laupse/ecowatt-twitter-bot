@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ecowatt-twitter-bot
+spec:
+  selector:
+    matchLabels:
+      app: ecowatt-twitter-bot
+  template:
+    spec:
+      containers:
+        - name: ecowatt-twitter-bot
+          env:
+            - name: RTE_CLIENT_ID
+              value: "1234"
+            - name: RTE_CLIENT_SECRET
+              value: abcd
+            - name: RTE_BASE_URL
+              value: "http://localhost:8000"
+            - name: TWITTER_CLIENT_ID
+              value: "1234"
+            - name: TWITTER_CLIENT_SECRET
+              value: abcd
+            - name: TWITTER_TOKEN
+              value: "1234"
+            - name: TWITTER_TOKEN_SECRET
+              value: abcd
+            - name: TWITTER_URL
+              value: "http://localhost:8000/2"
+            - name: LOG_LEVEL
+              value: "debug"
