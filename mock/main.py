@@ -68,7 +68,7 @@ async def root():
     return {
         "signals": [
             {
-                "GenerationFichier": "2022-06-03T07:36:25+02:00",
+                "GenerationFichier": "2022-06-04T07:36:25+02:00",
                 "jour": "2022-06-06T00:00:00+02:00",
                 "dvalue": 1,
                 "message": "Situation normale. ",

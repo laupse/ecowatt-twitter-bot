@@ -1,7 +1,9 @@
 use chrono::{DateTime, Local};
 use log::{error, info};
+use rte::RteClient;
 use std::env;
 use std::{thread, time};
+use twitter::TweetClient;
 pub mod rte;
 pub mod twitter;
 
@@ -44,40 +46,45 @@ fn main() {
 
     info!("starting loop");
     loop {
-        match rte_client.fetch_signals() {
-            Ok(response) => {
-                if response.latest_generation_fichier != generation_fichier {
-                    info!(
-                        "new version from {}, tweet will be sent",
-                        response.latest_generation_fichier
-                    );
-                    match twitter_client.send_tweets(&response) {
-                        Ok(_) => {
-                            generation_fichier = response.latest_generation_fichier.clone();
-                            info!("tweet sucessfully sent");
-
-                            // TODO : Make the retweet in the morning
-                            // tokio::spawn(async move {
-                            //     let duration = Duration::from_millis(100);
-                            //     tokio::time::sleep(duration).await;
-                            //     let twitter_retweet_client = twitter_client.clone();
-                            //     match twitter_retweet_client.clone().retweet_last() {
-                            //         Ok(_) => info!("last tweet successfully retweeted"),
-                            //         Err(e) => error!("failed to retweet last tweet :{:?}", e),
-                            //     }
-                            // });
-                        }
-                        Err(e) => error!("failed to post tweet :{:?}", e),
-                    }
-                } else {
-                    info!("no new version, tweet won't be sent")
-                }
-            }
-            Err(e) => {
-                error!("failed to retrieve signals {:?}", e);
-            }
-        };
-
+        generation_fichier = fetch(&twitter_client, &rte_client, generation_fichier);
         thread::sleep(time::Duration::from_secs(15 * 60))
     }
+}
+
+fn fetch(
+    twitter_client: &TweetClient,
+    rte_client: &RteClient,
+    generation_fichier: DateTime<Local>,
+) -> DateTime<Local> {
+    match rte_client.fetch_signals() {
+        Ok(response) => {
+            if response.latest_generation_fichier != generation_fichier {
+                info!(
+                    "new version from {}, tweet will be sent",
+                    response.latest_generation_fichier
+                );
+                match twitter_client.send_tweets(&response) {
+                    Ok(_) => info!("tweet sucessfully sent"),
+
+                    // TODO : Make the retweet in the morning
+                    // tokio::spawn(async move {
+                    //     let duration = Duration::from_millis(100);
+                    //     tokio::time::sleep(duration).await;
+                    //     let twitter_retweet_client = twitter_client.clone();
+                    //     match twitter_retweet_client.clone().retweet_last() {
+                    //         Ok(_) => info!("last tweet successfully retweeted"),
+                    //         Err(e) => error!("failed to retweet last tweet :{:?}", e),
+                    //     }
+                    // });
+                    Err(e) => error!("failed to post tweet :{:?}", e),
+                };
+                return response.latest_generation_fichier;
+            }
+            info!("no new version, tweet won't be sent")
+        }
+        Err(e) => {
+            error!("failed to retrieve signals {:?}", e);
+        }
+    };
+    return generation_fichier;
 }
