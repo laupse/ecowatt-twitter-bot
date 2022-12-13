@@ -9,8 +9,7 @@ def publish(final: dagger.Container, image_ref, image_registry, image_tag):
         return
 
     if image_registry is not None and image_tag is not None:
-        final.publish(image_ref.format(
-            "%s/ecowatt-twitter-bot:%s", image_registry, image_tag))
+        final.publish(f"{image_registry}/ecowatt-twitter-bot:{image_tag}")
         return
 
     print("image is not be push IMAGE_REF or IMAGE_REGISTRY+IMAGE_TAG env is required")
