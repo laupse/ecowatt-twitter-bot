@@ -3,7 +3,7 @@ import click
 import dagger
 
 
-def push(final: dagger.Container, image_ref, image_registry, image_tag):
+def publish(final: dagger.Container, image_ref, image_registry, image_tag):
     if image_ref is not None:
         final.publish(image_ref)
         return
@@ -53,6 +53,6 @@ def build(export_archive, push, image_ref, image_registry, image_tag):
             final.export("ecowatt-twitter-bot.tar.gz")
 
         if push:
-            push(final, image_ref, image_registry, image_tag)
+            publish(final, image_ref, image_registry, image_tag)
 
         return final

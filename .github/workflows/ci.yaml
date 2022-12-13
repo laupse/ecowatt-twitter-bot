@@ -1,11 +1,12 @@
 name: Continuous integration
 
 on:
-  release:
-    types: [published]
   push:
     branches:
       - main
+  create:
+    branches:
+      - v*
   pull_request:
     branches:
       - main
@@ -36,7 +37,7 @@ jobs:
         run: python3 cicd/main.py build
 
       - name: Log in to registry
-        if: ${{ github.event_name == 'release' || github.ref_name == 'main'}}
+        if: ${{ github.event_name == 'create' || github.ref_name == 'main'}}
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
 
       - name: Push OCI
@@ -47,27 +48,27 @@ jobs:
         run: python3 cicd/main.py build --push
 
       - name: Push OCI as release
-        if: ${{ github.event_name == 'release' }}
+        if: ${{ github.event_name == 'create' }}
         env:
           IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}
           IMAGE_TAG: ${{ github.ref_name }}
         run: python3 cicd/main.py build --push
 
       - name: Authenticate to GCP
-        if: ${{ github.event_name == 'release' }}
+        if: ${{ github.event_name == 'create' }}
         uses: google-github-actions/auth@v1
         with:
           credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
 
       - name: Set up Cloud SDK
-        if: ${{ github.event_name == 'release' }}
+        if: ${{ github.event_name == 'create' }}
         uses: google-github-actions/setup-gcloud@v1
 
       - run: gcloud container clusters get-credentials "$GKE_CLUSTER" --zone "$GKE_ZONE"
-        if: ${{ github.event_name == 'release' }}
+        if: ${{ github.event_name == 'create' }}
         env:
           KUBECONFIG: ${{ github.workspace }}/kubeconfig.yaml
 
       - name: Deploy
-        if: ${{ github.event_name == 'release' }}
+        if: ${{ github.event_name == 'create' }}
         run: ls
