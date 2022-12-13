@@ -17,11 +17,12 @@ env:
   GKE_ZONE: europe-west1-b
 
 jobs:
-  build-image:
+  pipeline:
     runs-on: ubuntu-latest
     permissions:
       packages: write
       contents: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@v3
@@ -29,45 +30,44 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
-      - run: pip install dagger.io
+      - run: pip install -r cicd/requirements.txt
 
       - name: Build OCI
-        run: python3 cicd/build.py
+        run: python3 cicd/main.py build
 
       - name: Log in to registry
-        if: ${{ github.event_name == 'push' && github.ref_name == 'main'}}
+        if: ${{ github.event_name == 'release' || github.ref_name == 'main'}}
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
 
       - name: Push OCI
-        if: ${{ github.event_name == 'push' && github.ref_name == 'main'}}
+        if: ${{ github.ref_name == 'main'}}
         env:
-          IMAGE_REF: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
-        run: python3 cicd/build.py --push
+          IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}
+          IMAGE_TAG: ${{ github.ref_name }}
+        run: python3 cicd/main.py build --push
 
-  setup-and-deploy:
-    name: Setup and Deploy
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      id-token: write
-
-    if: ${{ github.event_name == 'release' }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: Push OCI -- release
+        if: ${{ github.event_name == 'release' }}
+        env:
+          IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}
+          IMAGE_TAG: ${{ github.ref_name }}
+        run: python3 cicd/main.py build --push
 
       - id: "auth"
-        uses: "google-github-actions/auth@v1"
+        if: ${{ github.event_name == 'release' }}
+        uses: "google-github-actions@v1"
         with:
           credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
 
       - name: Set up Cloud SDK
+        if: ${{ github.event_name == 'release' }}
         uses: google-github-actions/setup-gcloud@v1
 
-      - run: |-
-          gcloud container clusters get-credentials "$GKE_CLUSTER" --zone "$GKE_ZONE"
+      - run: gcloud container clusters get-credentials "$GKE_CLUSTER" --zone "$GKE_ZONE"
+        if: ${{ github.event_name == 'release' }}
+        env:
+          KUBECONFIG: ${{ github.workspace }}/kubeconfig.yaml
 
       - name: Deploy
-        run: echo deploy
+        if: ${{ github.event_name == 'release' }}
+        run: ls

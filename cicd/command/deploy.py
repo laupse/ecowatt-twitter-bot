@@ -1,6 +1,6 @@
-import os
 import subprocess
 import sys
+import click
 import dagger
 import docker
 import docker.errors
@@ -8,45 +8,37 @@ import re
 import logging
 
 
-def deploy():
+@click.command()
+@click.option('--local', default=False, is_flag=True)
+@click.option('--image-ref', default="ecowatt-twitter-bot")
+def deploy(local, image_ref):
     with dagger.Connection(dagger.Config(log_output=sys.stdout, execute_timeout=1800)) as client:
-        env = os.getenv("ENV")
-        if env is None:
-            logging.info("ENV env var is no present falling back to local")
-            env = "local"
-
-        image_ref = os.getenv("IMAGE_REF")
-        if image_ref is None and env == "prod":
-            logging.info("IMAGE_REF env var is required in prod")
-            return 1
-
-        kustomize_file = f"./kustomize/{env}.yaml"
+        kustomize_file = f"./kustomize/prod.yaml"
+        if local:
+            kustomize_file = f"./kustomize/local.yaml"
 
         needed_files = ["kustomization.yaml", "deployment.yaml",
                         "./templates", "kubeconfig.yaml"] + [kustomize_file]
 
-        dir = client.host().directory(
-            ".", include=needed_files)
+        dir = (client
+               .host()
+               .directory(".", include=needed_files))
 
         k8s = (client
                .container()
                .from_("alpine/k8s:1.23.13")
                .with_file("/root/.kube/config", dir.file("kubeconfig.yaml")))
 
-        if env == "local":
-            try:
-                k8s, image_ref = prepare_local_k8s(client, k8s)
-            except Exception as e:
-                logging.error(e)
-                return 1
+        if local:
+            k8s, image_ref = prepare_local_k8s(client, k8s)
 
-        return (k8s
-                .with_mounted_directory("/src", dir)
-                .with_workdir("/src")
-                .exec(["kustomize", "edit", "set", "image", "ecowatt-twitter-bot="+image_ref])
-                .exec(["kustomize", "edit", "add", "patch", "--path", kustomize_file])
-                .exec(["kubectl", "kustomize"])
-                .exec(["kubectl", "apply", "-k", "."]).exit_code())
+        _ = (k8s
+             .with_mounted_directory("/src", dir)
+             .with_workdir("/src")
+             .exec(["kustomize", "edit", "set", "image", "ecowatt-twitter-bot="+image_ref])
+             .exec(["kustomize", "edit", "add", "patch", "--path", kustomize_file])
+             .exec(["kubectl", "kustomize"])
+             .exec(["kubectl", "apply", "-k", "."]).exit_code())
 
 
 def prepare_local_k8s(client: dagger.Client, k8s: dagger.Container):
@@ -102,12 +94,12 @@ def deploy_mock_server(docker_client: docker.DockerClient, client: dagger.Client
     image_ref = load_image_into_kind(
         docker_client, "./mock/api.tar", "mock-api")
 
-    return (k8s
-            .with_mounted_directory("/src", k8s_files)
-            .with_workdir("/src")
-            .exec(["kustomize", "edit", "set", "image", "mock-api="+image_ref])
-            .exec(["kubectl", "kustomize"])
-            .exec(["kubectl", "apply", "-k", "."]).exit_code())
+    _ = (k8s
+         .with_mounted_directory("/src", k8s_files)
+         .with_workdir("/src")
+         .exec(["kustomize", "edit", "set", "image", "mock-api="+image_ref])
+         .exec(["kubectl", "kustomize"])
+         .exec(["kubectl", "apply", "-k", "."]).exit_code())
 
 
 def load_image_into_kind(docker_client: docker.DockerClient, archive_path: str, name: str):
@@ -127,6 +119,5 @@ def load_image_into_kind(docker_client: docker.DockerClient, archive_path: str, 
 
 
 if __name__ == "__main__":
-    logging.basicConfig(stream=sys.stdout, level=logging.INFO,
-                        format='%(levelname)s - %(message)s')
+
     sys.exit(deploy())

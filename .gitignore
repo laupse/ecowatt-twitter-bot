@@ -1,4 +1,5 @@
 target/
+.vscode/
 __pycache__
 *.code-workspace
 *.tar
