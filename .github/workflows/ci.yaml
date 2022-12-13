@@ -53,7 +53,7 @@ jobs:
           IMAGE_TAG: ${{ github.ref_name }}
         run: python3 cicd/main.py build --push
 
-      - id: Authenticate to GCP
+      - name: Authenticate to GCP
         if: ${{ github.event_name == 'release' }}
         uses: google-github-actions/auth@v1
         with:
