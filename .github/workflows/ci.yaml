@@ -46,16 +46,16 @@ jobs:
           IMAGE_TAG: ${{ github.ref_name }}
         run: python3 cicd/main.py build --push
 
-      - name: Push OCI -- release
+      - name: Push OCI as release
         if: ${{ github.event_name == 'release' }}
         env:
           IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}
           IMAGE_TAG: ${{ github.ref_name }}
         run: python3 cicd/main.py build --push
 
-      - id: "auth"
+      - id: Authenticate to GCP
         if: ${{ github.event_name == 'release' }}
-        uses: "google-github-actions@v1"
+        uses: google-github-actions/auth@v1
         with:
           credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
 
