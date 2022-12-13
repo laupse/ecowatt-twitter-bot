@@ -63,8 +63,8 @@ jobs:
       - name: Set up Cloud SDK
         if: ${{ github.event_name == 'create' }}
         uses: google-github-actions/setup-gcloud@v1
-        with:
-          install_components: gke-gcloud-auth-plugin
+        #with:
+        #  install_components: gke-gcloud-auth-plugin
 
       - run: gcloud container clusters get-credentials "$GKE_CLUSTER" --zone "$GKE_ZONE"
         if: ${{ github.event_name == 'create' }}
