@@ -58,4 +58,4 @@ jobs:
         env:
           IMAGE_REF: ghcr.io/${{ github.repository_owner }}/ecowatt-twitter-bot/${{ github.ref_name }}
         if: ${{ github.event_name == 'create' }}
-        run: python3 cicd/main.py deploy --dry-run
+        run: python3 cicd/main.py deploy --gke --dry-run
