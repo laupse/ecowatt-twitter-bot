@@ -13,8 +13,8 @@ on:
 
 env:
   IMAGE_NAME: ecowatt-twitter-bot
-  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
-  GKE_CLUSTER: cluster-1
+  GKE_PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+  GKE_CLUSTER_NAME: cluster-1
   GKE_ZONE: europe-west1-b
 
 jobs:
@@ -54,23 +54,8 @@ jobs:
           IMAGE_TAG: ${{ github.ref_name }}
         run: python3 cicd/main.py build --push
 
-      - name: Authenticate to GCP
-        if: ${{ github.event_name == 'create' }}
-        uses: google-github-actions/auth@v1
-        with:
-          credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
-
-      - name: Set up Cloud SDK
-        if: ${{ github.event_name == 'create' }}
-        uses: google-github-actions/setup-gcloud@v1
-        #with:
-        #  install_components: gke-gcloud-auth-plugin
-
-      - run: gcloud container clusters get-credentials "$GKE_CLUSTER" --zone "$GKE_ZONE"
-        if: ${{ github.event_name == 'create' }}
-        env:
-          KUBECONFIG: ${{ github.workspace }}/kubeconfig.yaml
-
       - name: Deploy
+        env:
+          IMAGE_REF: ghcr.io/${{ github.repository_owner }}/ecowatt-twitter-bot/${{ github.ref_name }}
         if: ${{ github.event_name == 'create' }}
-        run: python3 cicd/main.py deploy --image-ref=ghcr.io/${{ github.repository_owner }}/ecowatt-twitter-bot/${{ github.ref_name }}
+        run: python3 cicd/main.py deploy --dry-run

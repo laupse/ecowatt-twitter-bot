@@ -48,7 +48,7 @@ def build(export_archive, push, image_ref, image_registry, image_tag):
                  .exec(["ln", "-s", "/usr/share/zoneinfo/Europe/Paris /etc/localtime"])
                  .with_file(".", executable)
                  .with_entrypoint("/ecowatt-twitter-bot"))
-        if export_archive:
+        if export_archive and not push:
             final.export("ecowatt-twitter-bot.tar.gz")
 
         if push:
