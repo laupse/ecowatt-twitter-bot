@@ -1,4 +1,5 @@
 use chrono::{DateTime, Local};
+use log::debug;
 use oauth2::basic::BasicClient;
 use oauth2::reqwest::http_client;
 use oauth2::AccessToken;
@@ -91,6 +92,8 @@ impl RteClient {
             .map_err(|err| SignalsRetrievalError::HttpError(err.status()))?
             .json::<ApiResponse>()
             .map_err(|err| SignalsRetrievalError::NoneHttpError(err.to_string()))?;
+
+        debug!("{:?}", result);
 
         //Compute the relative number of day with today
         result.signals.iter_mut().for_each(|f| {

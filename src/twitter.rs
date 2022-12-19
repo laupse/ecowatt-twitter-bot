@@ -125,7 +125,7 @@ impl TweetClient {
             .map_err(|err| TwitterClientError::NoneHttpError(err.to_string()))?;
 
         let status = response.status();
-        if status != 200 {
+        if !(status.is_success()) {
             error!("Request failed with {:?}", status);
             match response.text() {
                 Ok(text) => debug!("{}", text),
