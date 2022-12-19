@@ -25,7 +25,7 @@ fn main() {
     let twitter_client_secret = env::var("TWITTER_CLIENT_SECRET")
         .expect("env variable `TWITTER_CLIENT_SECRET` should be set");
     let twitter_token =
-        env::var("TWITTER_TOKEN").expect("env variable `TWITTER_TOKEN_ACCESS` should be set");
+        env::var("TWITTER_TOKEN").expect("env variable `TWITTER_TOKEN` should be set");
     let twitter_token_secret = env::var("TWITTER_TOKEN_SECRET")
         .expect("env variable `TWITTER_TOKEN_SECRET` should be set");
     let twitter_url = env::var("TWITTER_URL").expect("env variable `TWITTER_URL` should be set");
@@ -76,7 +76,10 @@ fn fetch(
                     //         Err(e) => error!("failed to retweet last tweet :{:?}", e),
                     //     }
                     // });
-                    Err(e) => error!("failed to post tweet :{:?}", e),
+                    Err(e) => {
+                        error!("failed to post tweet :{:?}", e);
+                        return generation_fichier;
+                    }
                 };
                 return response.latest_generation_fichier;
             }

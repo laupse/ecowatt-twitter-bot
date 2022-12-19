@@ -93,7 +93,7 @@ impl TweetClient {
         }
     }
 
-    fn generate_authorization_header<R>(&self, url: &String, request: R) -> String
+    fn generate_authorization_header<R>(&self, method: &Method, url: &String, request: R) -> String
     where
         R: Request,
     {
@@ -105,21 +105,21 @@ impl TweetClient {
         );
 
         // Create the `Authorization` header.
-        oauth::post(url, &request, &token, oauth::HMAC_SHA1)
+        oauth::authorize(method.as_str(), url, &request, &token, oauth::HMAC_SHA1)
     }
 
-    fn do_request<R: Request, T: Serialize + ?Sized>(
+    fn do_request<R: oauth::Request, T: Serialize + ?Sized>(
         &self,
         method: Method,
         url: &String,
-        query: &T,
-        json: &R,
+        params: &R,
+        body: &T,
     ) -> Result<Response, TwitterClientError> {
-        let authorization_header = self.generate_authorization_header(&url, json);
+        let authorization_header = self.generate_authorization_header(&method, &url, params);
         let response = self
             .client
             .request(method, url)
-            .query(query)
+            .json(body)
             .header(AUTHORIZATION, authorization_header)
             .send()
             .map_err(|err| TwitterClientError::NoneHttpError(err.to_string()))?;
@@ -143,11 +143,10 @@ impl TweetClient {
     ) -> Result<TwitterResponse<PostTweetResponse>, TwitterClientError> {
         debug!("{}", content);
         let request = Tweet {
-            text: content.to_string(),
+            text: String::from("this is a test"),
         };
 
         let full_url = String::from(&self.base_url) + "/tweets";
-
         let result = self.do_request(Method::POST, &full_url, &{}, &request)?;
 
         match result.json::<TwitterResponse<PostTweetResponse>>() {
@@ -205,7 +204,7 @@ impl TweetClient {
         let tweets_url =
             String::from(&self.base_url) + format!("/users/{}/tweets", me.data.id).as_str();
         let last_tweet = self
-            .do_request(Method::GET, &tweets_url, &[("max_results", 1)], &{})?
+            .do_request(Method::GET, &tweets_url, &{}, &[("max_results", 1)])?
             .json::<TwitterResponse<Vec<UserTweetsResponse>>>()
             .map_err(|err| TwitterClientError::NoneHttpError(err.to_string()))?
             .data
