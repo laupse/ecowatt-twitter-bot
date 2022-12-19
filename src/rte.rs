@@ -95,7 +95,6 @@ impl RteClient {
 
         debug!("{:?}", result);
 
-        //Compute the relative number of day with today
         result.signals.iter_mut().for_each(|f| {
             f.formatted_jour = f.jour.date_naive().format("%d/%m/%Y").to_string();
             f.message = f.message.trim_end().trim_end_matches(".").to_string();

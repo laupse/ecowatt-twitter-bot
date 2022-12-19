@@ -45,7 +45,7 @@ def build(export_archive, push, image_ref, image_registry, image_tag):
                  .exec(["apt-get", "update"])
                  .exec(["apt-get", "install", "-y", "dialog", "apt-utils", "tzdata"])
                  .exec(["rm", "/etc/localtime"])
-                 .exec(["ln", "-s", "/usr/share/zoneinfo/Europe/Paris /etc/localtime"])
+                 .exec(["ln", "-s", "/usr/share/zoneinfo/Europe/Paris", "/etc/localtime"])
                  .with_file(".", executable)
                  .with_entrypoint("/ecowatt-twitter-bot"))
         if export_archive and not push:
