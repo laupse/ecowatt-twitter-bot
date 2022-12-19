@@ -142,9 +142,7 @@ impl TweetClient {
         content: String,
     ) -> Result<TwitterResponse<PostTweetResponse>, TwitterClientError> {
         debug!("{}", content);
-        let request = Tweet {
-            text: String::from("this is a test"),
-        };
+        let request = Tweet { text: content };
 
         let full_url = String::from(&self.base_url) + "/tweets";
         let result = self.do_request(Method::POST, &full_url, &{}, &request)?;
